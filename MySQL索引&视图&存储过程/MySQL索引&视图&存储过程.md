@@ -497,41 +497,55 @@ CALL orders_proc(1,2,30,@out_num);
 
 1) 语法格式
 
-
-
-
+```mysql
+delimiter $            -- 将Mysql的结束符号从 ; 改为 $,避免执行出现错误
+CREATE TRIGGER	Trigger_Name	-- 触发器名，在一个数据库中触发器名是唯一的
+before/after（insert/update/delete） -- 触发的时机 和 监视的事件
+on table_Name	-- 触发器所在的表
+for each row	--	固定写法 叫做行触发器, 每一行受影响，触发事件都执行
+begin
+--被触发的事件
+end
+$  -- 结束标记
+```
 
 2) 向商品中添加一条数据
 
-
-
-
-
- 
+```mysql
+# 向商品中添加一条数据
+INSERT INTO goods VALUES(1,'book',40);
+```
 
 3) 需求: 在下订单的时候，对应的商品的库存量要相应的减少，卖出商品之后减少库存量。编写触发器
 
-
-
- 
-
 4) 查询 goods表中的数据
-
-
-
-
 
 5) 向订单表中添加一条数据
 
-
-
- 
-
 6) goods表中的数据随之 -1
 
+```mysql
+/*
+	监视的表
+	监视的事件 insert
+	触发的事件 update
+*/
+-- 修改结束符号
+DELIMITER $
+-- 创建触发器
+CREATE TRIGGER t2
+-- 设置触发的时间 以及监视的事件  监视的表
+AFTER INSERT ON orders
+-- 执行触发器
+FOR EACH ROW 
+-- 触发后执行的操作
+BEGIN
+-- 执行库存的操作  订单 + 1 库存 - 1
+  UPDATE goods SET num = num -1 WHERE gid = 3;
+END $
 
-
- 
+INSERT INTO orders VALUES(1,3,20);
+```
 
 # 5.DCL(数据控制语言)
 
@@ -541,13 +555,9 @@ MySql默认使用的都是  root  用户，超级管理员，拥有全部的权�
 
 语法格式
 
-
-
- 
-
-
-
- 
+```mysql
+CREATE USER '用户名'@'主机名' IDENTIFIED BY '密码';
+```
 
 | **参数** | **说明**                                                     |
 | -------- | ------------------------------------------------------------ |
@@ -555,60 +565,36 @@ MySql默认使用的都是  root  用户，超级管理员，拥有全部的权�
 | 主机名   | 指定该用户在哪个主机上可以登陆，本地用户可用 localhost如果想让该用户可以 从任意远程主机登陆，可以使用通配符 % |
 | 密码     | 登录密码                                                     |
 
- 
-
 1) 创建 admin1 用户，只能在 localhost 这个服务器登录 mysql 服务器，密码为 123456
 
-
-
- 
-
-
-
- 
+```mysql
+CREATE USER 'admin1'@'localhost' IDENTIFIED BY '123456';
+```
 
 - 创建的用户在名字为 mysql的 数据库中的 user表中
 
+![image-20220801181311068](MySQL索引&视图&存储过程.assets/image-20220801181311068.png)
 
-
-
- 
-
-
-
- 
 
 2) 创建 admin2 用户可以在任何电脑上登录 mysql 服务器，密码为 123456
 
-
-
- 
-
-
-
- 
+```mysql
+CREATE USER 'admin2'@'%' IDENTIFIED BY '123456';
+```
 
 % 表示 用户可以在任意电脑登录 mysql服务器.
+
+![image-20220801181347365](MySQL索引&视图&存储过程.assets/image-20220801181347365.png)
 
 ## **5.2** 用户授权
 
 创建好的用户,需要进行授权
 
-
-
 语法格式
 
-
-
-|      |                                                              |
-| ---- | ------------------------------------------------------------ |
-|      | ![img](file:///C:\Users\cuiwei\AppData\Local\Temp\ksohtml13000\wps99.png) |
-
- 
-
-
-
- 
+```mysql
+GRANT 权限 1, 权限 2... ON 数据库名.表名 TO '用户名'@'主机名';
+```
 
 | **参数** | **说明**                                                     |
 | -------- | ------------------------------------------------------------ |
@@ -616,103 +602,78 @@ MySql默认使用的都是  root  用户，超级管理员，拥有全部的权�
 | ON       | 用来指定权限针对哪些库和表。                                 |
 | TO       | 表示将权限赋予某个用户。                                     |
 
- 
-
 1) 给 admin1 用户分配对 db4 数据库中 products 表的 操作权限：查询
 
-
-
- 
-
-
-
- 
+```mysql
+GRANT SELECT ON db4.products TO 'admin1'@'localhost';
+```
 
 2) 给 admin2 用户分配所有权限，对所有数据库的所有表
 
-
-
-
+```mysql
+GRANT ALL ON *.* TO 'admin2'@'%';
+```
 
 3) 使用admin1用户登录数据库 测试权限
 
-
+![image-20220801181631192](MySQL索引&视图&存储过程.assets/image-20220801181631192.png)
 
 4) 发现数据库列表中 只有db4, 表只有 products.
 
-
-
 5) 执行查询操作
 
-
-
- 
+```mysql
+-- 查询account表
+SELECT * FROM products;
+```
 
 6) 执行插入操作,发现不允许执行,没有权限
 
-
-
- 
+```mysql
+-- 向 products 表中插入数据
+-- 不允许执行
+INSERT INTO products VALUES('p010','小鸟伏特加',1000,1,NULL);
+```
 
 ## **5.3** 查看权限
 
-
-
 语法格式
 
+```mysql
+SHOW GRANTS FOR '用户名'@'主机名';
+```
 
+查看root用户权限
 
- 
-
-
-
- 
-
-1) 查看root用户权限
-
- 
-
-
-
- 
-
-
-
-GRANT ALL PRIVILEGES 是表示所有权限
-
-
+```mysql
+SHOW GRANTS FOR 'root'@'localhost';
+```
 
 ## **5.4** 删除用户
 
 语法格式
 
-
-
-
+```mysql
+DROP USER '用户名'@'主机名';
+```
 
 1) 删除 admin1 用户
 
-
-
- 
-
-
-
- 
+```mysql
+-- 删除 admin1 用户
+DROP USER 'admin1'@'localhost';
+```
 
 ## **5.5** 查询用户
 
 选择名为 mysql的数据库, 直接查询 user表即可
 
-
-
- 
-
-
+```mysql
+-- 查询用户
+SELECT * FROM USER;
+```
 
 # 6.数据库备份&还原
-
-![img](file:///C:\Users\cuiwei\AppData\Local\Temp\ksohtml13000\wps113.png)
 
 备份的应用场景  在服务器进行数据传输、数据存储和数据交换，就有可能产生数据故障。比如发生意外停机或存储介质损坏。  这时，如果没有采取数据备份和数据恢复手段与措施，就会导致数据的丢失，造成的损失是无法弥补与估量的。
 
@@ -720,35 +681,13 @@ GRANT ALL PRIVILEGES 是表示所有权限
 
 1) 选中要备份的数据库,右键 备份导出	>选择 备份数据库 
 
- 
-
 2) 指定文件位置,选择导出即可
-
-
 
 ## 6.2 **SQLYog** **数据恢复**
 
 1) 先删除 db2 数据库
 
-
-
- 
-
-
-
- 
-
 2) 导入 之前备份的 SQL 文件
-
- 
-
-
-
- 
-
-
-
- 
 
 ## **6.3** 命令行备份
 
@@ -756,28 +695,22 @@ GRANT ALL PRIVILEGES 是表示所有权限
 
 1) 语法格式
 
+```mysql
+mysqldump -u 用户名 -p 密码 数据库 > 文件路径
+```
 
+2) 执行备份
 
- 
-
-2) 执行备份, 备份db2中的数据 到 H盘的 db2.sql 文件中
-
-
-
-
-
-## **6.4** 命令行恢复
+```mysql
+mysqldump -uroot -p123456 db2 > D:/db4.sql
+```
 
 1) 先删除 db2 数据库
 
-
+```mysql
+source sql文件地址
+```
 
 2) 恢复数据 还原 db2 数据库中的数据
 
 注意：还原的时候需要先创建一个db2数据库
-
- 
-
-
-
- 
